@@ -1,0 +1,22 @@
+/* Fuentes locales para uso 100% offline.
+   Generado/completado por scripts/descargar-fuentes.sh — ver fonts/README.md.
+   Mientras los archivos .woff2 no existan, el navegador simplemente cae al
+   fallback del stack de fuentes del sistema definido en el HTML; nada se rompe. */
+
+@font-face{
+  font-family:'Inter';
+  src:url('./InterVariable.woff2') format('woff2-variations'),
+      url('./InterVariable.woff2') format('woff2');
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}
+
+@font-face{
+  font-family:'Geist Mono';
+  src:url('./GeistMono-Variable.woff2') format('woff2-variations'),
+      url('./GeistMono-Variable.woff2') format('woff2');
+  font-weight:100 900;
+  font-style:normal;
+  font-display:swap;
+}

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Calculadora de Financiación ZBE — SYNERGY</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ZBE Calc">
+<meta name="theme-color" content="#08090c">
+<!-- Fuentes: servidas localmente desde ../fonts para funcionamiento 100% offline.
+     Ver ../fonts/README.md si el paquete fonts.css aún no se ha generado. -->
+<link rel="stylesheet" href="../fonts/fonts.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#08090c;--card:#0e1014;--card2:#12141a;
+  --line:rgba(255,255,255,.06);--line2:rgba(255,255,255,.14);
+  --text:#f2f3f6;--muted:#8a8f9d;--dim:#585d6a;
+  --indigo:#7c6cff;--green:#3ddc97;--amber:#ffb454;--red:#ff6b6b;
+  --blue:#5ba8ff;--purple:#a78bfa;--teal:#2dd4bf;--rose:#fb7185;--cyan:#4cc9f0;
+  --fs-base:15px;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;font-size:var(--fs-base);
+  font-feature-settings:'tnum','cv11';-webkit-font-smoothing:antialiased;
+}
+::selection{background:rgba(124,108,255,.35)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#1e2027;border-radius:5px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:#2a2d36}
+.mono{font-family:'Geist Mono',monospace}
+
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.aurora::before,.aurora::after{content:'';position:absolute;width:900px;height:900px;border-radius:50%;filter:blur(150px);opacity:.12}
+.aurora::before{background:#5b4dff;top:-540px;left:-220px;animation:drift1 28s ease-in-out infinite alternate}
+.aurora::after{background:#0ea5c9;top:-600px;right:-320px;animation:drift2 34s ease-in-out infinite alternate}
+@keyframes drift1{to{transform:translate(170px,130px)}}
+@keyframes drift2{to{transform:translate(-150px,110px)}}
+.header,.wrap{position:relative;z-index:1}
+
+@keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes livepulse{50%{opacity:.3}}
+
+.header{background:rgba(9,10,13,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);padding:15px 40px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;flex-wrap:wrap;gap:10px}
+.hdr-brand{display:flex;align-items:center;gap:14px}
+.mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#7c6cff,#4cc9f0);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#fff;
+  box-shadow:0 8px 24px rgba(124,108,255,.32);flex-shrink:0}
+.header-left h1{font-size:16.5px;font-weight:700;color:#fff;letter-spacing:-.01em}
+.header-left h1 .hdr-thin{color:var(--dim);font-weight:500}
+.header-left p{font-size:12px;color:var(--dim);margin-top:2px;font-weight:450;font-family:'Geist Mono',monospace}
+.badge-update{font-size:11.5px;padding:7px 15px;border-radius:8px;background:var(--card);
+  border:1px solid rgba(61,220,151,.25);color:#3ddc97;font-weight:500;letter-spacing:.01em;
+  display:inline-flex;align-items:center;gap:8px;font-family:'Geist Mono',monospace}
+.badge-update::before{content:'';width:7px;height:7px;border-radius:50%;background:#3ddc97;
+  box-shadow:0 0 8px rgba(61,220,151,.7);animation:livepulse 2.4s ease infinite}
+
+.wrap{max-width:1180px;margin:0 auto;padding:34px 40px 110px}
+.sec-hdr{margin-bottom:26px}
+.sec-hdr h2{font-size:21px;font-weight:700;color:#fff;margin-bottom:5px;letter-spacing:-.02em;display:flex;align-items:center;gap:11px}
+.sec-hdr p{font-size:13.5px;color:var(--dim);font-weight:450}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px;transition:border-color .2s;margin-bottom:16px}
+.card:hover{border-color:var(--line2)}
+.card-title{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.card-num{width:26px;height:26px;border-radius:7px;background:rgba(124,108,255,.14);color:var(--indigo);
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.card-title h3{font-size:14.5px;font-weight:650;color:#fff;letter-spacing:-.01em}
+
+.field-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.field-row:last-child{border-bottom:none}
+.field-lbl{font-size:13px;color:var(--muted);font-weight:500;flex:1}
+.field-lbl small{display:block;font-size:11px;color:var(--dim);font-weight:450;margin-top:2px}
+.field-input{flex-shrink:0;width:170px}
+
+input.f-num,input.f-text,select.f-sel{
+  width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,180,84,.35);
+  background:rgba(255,180,84,.06);color:#fff;font-size:14.5px;font-weight:650;outline:none;
+  text-align:right;font-family:'Geist Mono',monospace;transition:border-color .15s,background .15s;
+  -moz-appearance:textfield;
+}
+select.f-sel{text-align:left;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23ffb454' stroke-width='2.4'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;cursor:pointer}
+input.f-text{text-align:left}
+input.f-num::-webkit-inner-spin-button,input.f-num::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input.f-num:focus,input.f-text:focus,select.f-sel:focus{border-color:#ffb454;background:rgba(255,180,84,.11)}
+
+.field-out{flex-shrink:0;width:170px;text-align:right;font-family:'Geist Mono',monospace;font-size:14.5px;font-weight:700;color:var(--green)}
+.field-out.big{font-size:16.5px}
+.field-out.muted-out{color:var(--cyan)}
+.field-out.warn-out{color:var(--amber)}
+
+.tramo-tag{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:650;padding:6px 12px;border-radius:8px;
+  font-family:'Geist Mono',monospace;letter-spacing:.01em}
+.tramo-tag.oblig{background:rgba(255,107,107,.12);color:#ff9d9d;border:1px solid rgba(255,107,107,.28)}
+.tramo-tag.recom{background:rgba(255,180,84,.12);color:#ffc98a;border:1px solid rgba(255,180,84,.28)}
+.tramo-tag.no{background:rgba(138,143,157,.12);color:var(--muted);border:1px solid var(--line2)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:26px}
+.kpi{background:var(--card);padding:22px 22px;text-align:left;transition:background .2s;position:relative}
+.kpi:hover{background:var(--card2)}
+.kpi-head{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.kpi-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.kpi-lbl{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.01em}
+.kpi-val{font-size:30px;font-weight:700;line-height:1;letter-spacing:-.03em;color:#fff;font-variant-numeric:tabular-nums;font-family:'Geist Mono',monospace}
+.kpi-sub{font-size:11px;color:var(--dim);margin-top:9px;font-family:'Geist Mono',monospace}
+
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:6px;margin-bottom:20px}
+.legend span{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--dim);font-family:'Geist Mono',monospace}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.legend .i-in{background:rgba(255,180,84,.6);border:1px solid #ffb454}
+.legend .i-out{background:rgba(61,220,151,.5);border:1px solid var(--green)}
+
+.modality-switch{display:flex;background:var(--card2);border:1px solid var(--line2);border-radius:10px;padding:3px;gap:3px;margin-bottom:4px}
+.modality-btn{flex:1;text-align:center;padding:9px 10px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;user-select:none}
+.modality-btn.active{background:linear-gradient(135deg,#7c6cff,#4cc9f0);color:#fff;box-shadow:0 4px 14px rgba(124,108,255,.3)}
+
+.foot-note{font-size:12px;color:var(--dim);text-align:center;margin-top:26px;line-height:1.6}
+.foot-note b{color:var(--muted)}
+
+@media (max-width:640px){
+  .header,.wrap{padding-left:18px;padding-right:18px}
+  .field-row{flex-wrap:wrap}
+  .field-input,.field-out{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="aurora"></div>
+
+<div class="header">
+  <div class="hdr-brand">
+    <div class="mark">Z</div>
+    <div class="header-left">
+      <h1>SYNERGY <span class="hdr-thin">— Calculadora ZBE</span></h1>
+      <p>Financiación de Zonas de Bajas Emisiones</p>
+    </div>
+  </div>
+  <div class="badge-update">Cálculo en vivo</div>
+</div>
+
+<div class="wrap">
+
+  <div class="sec-hdr">
+    <h2>Simulador de coste e implantación</h2>
+    <p>Cambia cualquier campo en ámbar — todo lo demás (en verde) se recalcula al instante.</p>
+  </div>
+
+  <div class="legend">
+    <span><i class="i-in"></i> Editable</span>
+    <span><i class="i-out"></i> Calculado automáticamente</span>
+  </div>
+
+  <!-- KPI SUMMARY -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi">
+      <div class="kpi-head"><span class="kpi-dot" style="background:var(--indigo)"></span><span class="kpi-lbl">Coste total instalación</span></div>
+      <div class="kpi-val mono" id="kpiCosteTotal">—</div>
+      <div class="kpi-sub" id="kpiCosteTotalSub">antes de subvención</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><span class="kpi-dot" style="background:var(--green)"></span><span class="kpi-lbl">Desembolso neto ayuntamiento</span></div>
+      <div class="kpi-val mono" id="kpiDesembolso">—</div>
+      <div class="kpi-sub" id="kpiDesembolsoSub">tras subvención</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><span class="kpi-dot" style="background:var(--amber)"></span><span class="kpi-lbl">Coste Año 1 (con mantenim.)</span></div>
+      <div class="kpi-val mono" id="kpiAnyo1">—</div>
+      <div class="kpi-sub" id="kpiAnyo1Sub">según modalidad elegida</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-head"><span class="kpi-dot" style="background:var(--cyan)"></span><span class="kpi-lbl">Coste total a los años de plazo</span></div>
+      <div class="kpi-val mono" id="kpiTotalPlazo">—</div>
+      <div class="kpi-sub" id="kpiTotalPlazoSub">instalación + mantenimiento</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+
+    <!-- 1. DATOS DEL MUNICIPIO -->
+    <div class="card">
+      <div class="card-title"><div class="card-num">1</div><h3>Datos del municipio</h3></div>
+
+      <div class="field-row">
+        <div class="field-lbl">Municipio</div>
+        <div class="field-input"><input class="f-text" id="municipio" type="text" value="Nombre del municipio"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Habitantes</div>
+        <div class="field-input"><input class="f-num" id="habitantes" type="number" min="0" step="500" value="30000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Tramo poblacional (auto)<small>según Ley 7/2021 de cambio climático</small></div>
+        <div class="field-out big" id="tramoOut" style="text-align:right"></div>
+      </div>
+    </div>
+
+    <!-- 2. COSTE DEL PROYECTO -->
+    <div class="card">
+      <div class="card-title"><div class="card-num">2</div><h3>Coste del proyecto</h3></div>
+
+      <div class="field-row">
+        <div class="field-lbl">Nº puntos de acceso / cámaras ZBE</div>
+        <div class="field-input"><input class="f-num" id="npuntos" type="number" min="0" step="1" value="4"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Coste por punto de acceso<small>cámara + instalación</small></div>
+        <div class="field-input"><input class="f-num" id="costepunto" type="number" min="0" step="100" value="8000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Coste plataforma / software<small>gestión, alta única</small></div>
+        <div class="field-input"><input class="f-num" id="costesoft" type="number" min="0" step="100" value="15000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Señalización y obra civil</div>
+        <div class="field-input"><input class="f-num" id="obra" type="number" min="0" step="100" value="5000"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl" style="font-weight:650;color:#fff">COSTE TOTAL INSTALACIÓN</div>
+        <div class="field-out big" id="costeTotalOut">—</div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Cuota anual mantenimiento<small>soporte / licencia SaaS</small></div>
+        <div class="field-input"><input class="f-num" id="mant" type="number" min="0" step="100" value="6000"></div>
+      </div>
+    </div>
+
+    <!-- 3. SUBVENCIÓN -->
+    <div class="card">
+      <div class="card-title"><div class="card-num">3</div><h3>Subvención / fondos públicos</h3></div>
+
+      <div class="field-row">
+        <div class="field-lbl">% Subvención aplicable<small>Next Generation EU / Generalitat / propia</small></div>
+        <div class="field-input"><input class="f-num" id="pctsub" type="number" min="0" max="100" step="1" value="40"></div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl">Importe subvención</div>
+        <div class="field-out" id="impsubOut">—</div>
+      </div>
+      <div class="field-row">
+        <div class="field-lbl" style="font-weight:650;color:#fff">DESEMBOLSO NETO INSTALACIÓN</div>
+        <div class="field-out big" id="desembolsoOut">—</div>
+      </div>
+      <div class="foot-note" style="text-align:left;margin-top:14px">
+        El % de subvención no es fijo por ley — depende de qué convocatoria (estatal PRTR, Generalitat, Diputació) le corresponda a este municipio en concreto. Verificar caso por caso antes de negociar.
+      </div>
+    </div>
+
+    <!-- 4. MODALIDAD DE PAGO -->
+    <div class="card">
+      <div class="card-title"><div class="card-num">4</div><h3>Modalidad de pago</h3></div>
+
+      <div class="modality-switch">
+        <div class="modality-btn active" id="btnUnico" onclick="setModalidad('unico')">Pago único</div>
+        <div class="modality-btn" id="btnFinanciado" onclick="setModalidad('financiado')">Financiado a plazos</div>
+      </div>
+
+      <div id="finFields">
+        <div class="field-row">
+          <div class="field-lbl">Plazo de financiación (años)</div>
+          <div class="field-input"><input class="f-num" id="plazo" type="number" min="1" max="30" step="1" value="5"></div>
+        </div>
+        <div class="field-row">
+          <div class="field-lbl">Tipo de interés anual</div>
+          <div class="field-input"><input class="f-num" id="interes" type="number" min="0" max="20" step="0.1" value="3"></div>
+        </div>
+        <div class="field-row">
+          <div class="field-lbl">Cuota anual de financiación<small>capital + interés</small></div>
+          <div class="field-out" id="cuotaAnualOut">—</div>
+        </div>
+        <div class="field-row">
+          <div class="field-lbl">Cuota mensual de financiación</div>
+          <div class="field-out" id="cuotaMesOut">—</div>
+        </div>
+        <div class="field-row">
+          <div class="field-lbl">Coste total financiado<small>instalación con intereses</small></div>
+          <div class="field-out" id="totalFinOut">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 5. RESUMEN -->
+  <div class="card" style="margin-top:2px">
+    <div class="card-title"><div class="card-num">5</div><h3>Resumen — coste anual para el ayuntamiento</h3></div>
+
+    <div class="field-row">
+      <div class="field-lbl">Año 1 — si PAGO ÚNICO<small>desembolso + mantenimiento</small></div>
+      <div class="field-out muted-out" id="anyo1UnicoOut">—</div>
+    </div>
+    <div class="field-row">
+      <div class="field-lbl">Año 1 — si FINANCIADO<small>cuota + mantenimiento</small></div>
+      <div class="field-out muted-out" id="anyo1FinOut">—</div>
+    </div>
+    <div class="field-row">
+      <div class="field-lbl">Coste total al plazo elegido — PAGO ÚNICO</div>
+      <div class="field-out warn-out" id="totalPlazoUnicoOut">—</div>
+    </div>
+    <div class="field-row">
+      <div class="field-lbl">Coste total al plazo elegido — FINANCIADO</div>
+      <div class="field-out warn-out" id="totalPlazoFinOut">—</div>
+    </div>
+  </div>
+
+  <div class="foot-note">
+    <b>Cifras en ámbar</b> = editables. <b>Cifras en verde/cian</b> = calculadas automáticamente.<br>
+    Basado en la plantilla <i>Calculadora_Financiacion_ZBE</i>. Precios de ejemplo — sustituir por cifras reales de Synergy y por el % de subvención verificado para cada municipio.
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const eur = n => (isFinite(n)?n:0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+
+let modalidad = 'financiado';
+
+function setModalidad(m){
+  modalidad = m;
+  $('btnUnico').classList.toggle('active', m==='unico');
+  $('btnFinanciado').classList.toggle('active', m==='financiado');
+  $('finFields').style.opacity = m==='financiado' ? '1' : '.4';
+  $('finFields').style.pointerEvents = m==='financiado' ? 'auto' : 'none';
+  calc();
+}
+
+// PMT equivalent (like Excel/Sheets PMT with fv=0, type=0)
+function pmt(rate, nper, pv){
+  if(rate === 0) return -(pv/nper);
+  return -(pv * rate) / (1 - Math.pow(1+rate, -nper));
+}
+
+function calc(){
+  const hab = parseFloat($('habitantes').value) || 0;
+  const npuntos = parseFloat($('npuntos').value) || 0;
+  const costepunto = parseFloat($('costepunto').value) || 0;
+  const costesoft = parseFloat($('costesoft').value) || 0;
+  const obra = parseFloat($('obra').value) || 0;
+  const mant = parseFloat($('mant').value) || 0;
+  const pctsub = (parseFloat($('pctsub').value) || 0) / 100;
+  const plazo = parseFloat($('plazo').value) || 1;
+  const interes = (parseFloat($('interes').value) || 0) / 100;
+
+  // Tramo poblacional
+  let tramoHTML, tramoClass;
+  if(hab >= 50000){ tramoHTML = 'Obligatoria (&gt;50.000 hab. — Ley 7/2021)'; tramoClass='oblig'; }
+  else if(hab >= 20000){ tramoHTML = 'Recomendable (20–50.000 hab.)'; tramoClass='recom'; }
+  else { tramoHTML = 'No obligatoria (&lt;20.000 hab.)'; tramoClass='no'; }
+  $('tramoOut').innerHTML = `<span class="tramo-tag ${tramoClass}">${tramoHTML}</span>`;
+
+  // Coste total instalación
+  const costeTotal = npuntos*costepunto + costesoft + obra;
+  $('costeTotalOut').textContent = eur(costeTotal);
+
+  // Subvención
+  const impsub = costeTotal * pctsub;
+  $('impsubOut').textContent = eur(impsub);
+  const desembolso = costeTotal - impsub;
+  $('desembolsoOut').textContent = eur(desembolso);
+
+  // Financiación (PMT)
+  const cuotaAnual = pmt(interes, plazo, -desembolso); // desembolso positivo, PMT convención Excel usa PV negativo si es un préstamo recibido
+  $('cuotaAnualOut').textContent = eur(cuotaAnual);
+  const cuotaMes = cuotaAnual/12;
+  $('cuotaMesOut').textContent = eur(cuotaMes);
+  const totalFin = cuotaAnual*plazo;
+  $('totalFinOut').textContent = eur(totalFin);
+
+  // Resumen
+  const anyo1Unico = desembolso + mant;
+  const anyo1Fin = cuotaAnual + mant;
+  $('anyo1UnicoOut').textContent = eur(anyo1Unico);
+  $('anyo1FinOut').textContent = eur(anyo1Fin);
+
+  const totalPlazoUnico = desembolso + mant*plazo;
+  const totalPlazoFin = totalFin + mant*plazo;
+  $('totalPlazoUnicoOut').textContent = eur(totalPlazoUnico);
+  $('totalPlazoFinOut').textContent = eur(totalPlazoFin);
+
+  // KPIs (respetan modalidad elegida)
+  $('kpiCosteTotal').textContent = eur(costeTotal);
+  $('kpiCosteTotalSub').textContent = `${npuntos} puntos · antes de subvención`;
+
+  $('kpiDesembolso').textContent = eur(desembolso);
+  $('kpiDesembolsoSub').textContent = pctsub>0 ? `–${(pctsub*100).toFixed(0)}% subvención (${eur(impsub)})` : 'sin subvención aplicada';
+
+  const anyo1 = modalidad==='financiado' ? anyo1Fin : anyo1Unico;
+  $('kpiAnyo1').textContent = eur(anyo1);
+  $('kpiAnyo1Sub').textContent = modalidad==='financiado' ? `financiado a ${plazo} años · ${(interes*100).toFixed(1)}% interés` : 'pago único + mantenimiento';
+
+  const totalPlazo = modalidad==='financiado' ? totalPlazoFin : totalPlazoUnico;
+  $('kpiTotalPlazo').textContent = eur(totalPlazo);
+  $('kpiTotalPlazoSub').textContent = `a ${plazo} años vista`;
+}
+
+document.querySelectorAll('.f-num, .f-text, .f-sel').forEach(el=>{
+  el.addEventListener('input', calc);
+  el.addEventListener('change', calc);
+});
+
+setModalidad('financiado');
+calc();
+</script>
+
+<script>
+// ── Persistencia local (app de escritorio) ──────────────────────────────
+// Añadido para la versión Electron: no modifica el diseño ni las fórmulas
+// de arriba, solo recuerda los últimos valores introducidos usando el
+// almacenamiento local de la propia app (electron-store vía preload.js).
+// Si se abre este archivo suelto en un navegador (sin window.zbeStore),
+// este bloque no hace nada y la calculadora funciona igual que siempre.
+(function(){
+  if (!window.zbeStore) return;
+
+  const CAMPOS = ['municipio','habitantes','npuntos','costepunto','costesoft','obra','mant','pctsub','plazo','interes'];
+  const setModalidadOriginal = setModalidad;
+
+  function guardarEstado(){
+    const datos = {};
+    CAMPOS.forEach(id => { datos[id] = $(id).value; });
+    datos.modalidad = modalidad;
+    window.zbeStore.set(datos);
+  }
+
+  // Envuelve setModalidad para persistir también el cambio de modalidad.
+  setModalidad = function(m){
+    setModalidadOriginal(m);
+    guardarEstado();
+  };
+
+  document.querySelectorAll('.f-num, .f-text, .f-sel').forEach(el=>{
+    el.addEventListener('input', guardarEstado);
+    el.addEventListener('change', guardarEstado);
+  });
+
+  window.zbeStore.get().then(guardado => {
+    if (guardado){
+      CAMPOS.forEach(id => {
+        if (guardado[id] !== undefined && guardado[id] !== '') $(id).value = guardado[id];
+      });
+      if (guardado.modalidad) setModalidadOriginal(guardado.modalidad);
+      calc();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>
