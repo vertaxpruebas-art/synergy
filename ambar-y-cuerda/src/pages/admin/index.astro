@@ -1,0 +1,285 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+export const prerender = false;
+---
+
+<BaseLayout
+  title="Panel de catálogo — Ámbar & Cuerda"
+  description="Panel privado de gestión del catálogo."
+  noindex
+>
+  <main id="main" class="min-h-screen bg-ink px-4 py-10 sm:px-8">
+    <div class="max-w-3xl mx-auto">
+      <h1 class="font-serif-italic text-3xl text-bone mb-1">Catálogo</h1>
+      <p class="text-bone-dim text-sm mb-8">
+        Poner el stock en <strong class="text-brass">0</strong> marca la pieza como «Agotado» en la
+        vista pública al instante, para cualquier visitante con la página abierta.
+      </p>
+
+      <section id="auth-gate" class="hidden">
+        <form id="login-form" class="grid gap-3 max-w-sm bg-card border border-line rounded-lg p-6">
+          <h2 class="font-mono text-xs uppercase tracking-wide text-brass mb-1">
+            Acceso de administración
+          </h2>
+          <label class="text-xs font-mono uppercase text-bone-dim" for="login-email">Correo</label>
+          <input
+            id="login-email"
+            type="email"
+            required
+            autocomplete="email"
+            class="bg-ink border border-line text-bone px-3 py-2 rounded text-sm"
+          />
+          <label class="text-xs font-mono uppercase text-bone-dim" for="login-password">
+            Contraseña
+          </label>
+          <input
+            id="login-password"
+            type="password"
+            required
+            autocomplete="current-password"
+            class="bg-ink border border-line text-bone px-3 py-2 rounded text-sm"
+          />
+          <button
+            type="submit"
+            class="mt-2 bg-brass text-ink font-mono text-xs uppercase tracking-wide px-4 py-2 rounded"
+          >
+            Entrar
+          </button>
+          <p id="login-status" role="status" class="text-xs font-mono text-bone-dim min-h-[1em]"></p>
+        </form>
+      </section>
+
+      <section id="editor" class="hidden">
+        <div class="flex justify-between items-center mb-4">
+          <span id="session-email" class="font-mono text-xs text-bone-dim"></span>
+          <button id="logout-btn" type="button" class="font-mono text-xs text-bone-dim underline">
+            Cerrar sesión
+          </button>
+        </div>
+
+        <div id="product-list" class="grid gap-3"></div>
+
+        <details class="mt-8 bg-card border border-line rounded-lg p-5">
+          <summary class="font-mono text-xs uppercase tracking-wide text-brass cursor-pointer">
+            Añadir pieza
+          </summary>
+          <form id="add-form" class="grid sm:grid-cols-2 gap-3 mt-4">
+            <input name="sku" placeholder="SKU (AC-040)" required class="admin-input" />
+            <input name="category" placeholder="Categoría" required class="admin-input" />
+            <input name="name" placeholder="Nombre" required class="admin-input" />
+            <input name="price" type="number" min="0" step="0.5" placeholder="Precio (€)" required class="admin-input" />
+            <input name="stock" type="number" min="0" step="1" placeholder="Stock" required class="admin-input" value="1" />
+            <input name="sort_order" type="number" min="0" step="1" placeholder="Orden" class="admin-input" />
+            <textarea name="description" placeholder="Descripción" required class="admin-input sm:col-span-2"></textarea>
+            <div class="sm:col-span-2">
+              <label class="text-xs font-mono uppercase text-bone-dim block mb-1" for="add-image">
+                Foto
+              </label>
+              <input id="add-image" name="image" type="file" accept="image/*" class="text-sm text-bone-dim" />
+            </div>
+            <button
+              type="submit"
+              class="sm:col-span-2 justify-self-start bg-brass text-ink font-mono text-xs uppercase tracking-wide px-4 py-2 rounded"
+            >
+              Añadir al recorrido
+            </button>
+            <p id="add-status" role="status" class="sm:col-span-2 font-mono text-xs text-bone-dim min-h-[1em]"></p>
+          </form>
+        </details>
+      </section>
+
+      <p id="loading" class="font-mono text-xs text-bone-dim">Comprobando sesión…</p>
+    </div>
+  </main>
+</BaseLayout>
+
+<style is:global>
+  .admin-input {
+    background: theme("colors.ink");
+    border: 1px solid theme("borderColor.line");
+    color: theme("colors.bone");
+    font-size: 0.85rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 0.25rem;
+  }
+</style>
+
+<script>
+  import { getSupabaseClient } from "@/lib/supabase";
+  import { productImageUrl } from "@/lib/image";
+  import type { Product } from "@/lib/types";
+
+  const supabase = getSupabaseClient();
+  const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL as string;
+
+  const loadingEl = document.getElementById("loading")!;
+  const gateEl = document.getElementById("auth-gate")!;
+  const editorEl = document.getElementById("editor")!;
+  const listEl = document.getElementById("product-list")!;
+  const sessionEmailEl = document.getElementById("session-email")!;
+
+  function euros(cents: number) {
+    return (cents / 100).toString();
+  }
+
+  async function refreshUI() {
+    const { data } = await supabase.auth.getSession();
+    loadingEl.classList.add("hidden");
+    if (!data.session) {
+      gateEl.classList.remove("hidden");
+      editorEl.classList.add("hidden");
+      return;
+    }
+    gateEl.classList.add("hidden");
+    editorEl.classList.remove("hidden");
+    sessionEmailEl.textContent = data.session.user.email ?? "";
+    await loadProducts();
+  }
+
+  async function loadProducts() {
+    listEl.innerHTML = '<p class="font-mono text-xs text-bone-dim">Cargando…</p>';
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("sort_order", { ascending: true });
+
+    if (error) {
+      // Most likely: this signed-in user isn't in admin_users yet.
+      listEl.innerHTML = `<p class="font-mono text-xs text-rust">No se pudo cargar el catálogo: ${error.message}. ¿Está tu usuario en la tabla admin_users?</p>`;
+      return;
+    }
+
+    const products = data as Product[];
+    listEl.innerHTML = "";
+    products.forEach((p) => listEl.appendChild(renderRow(p)));
+  }
+
+  function renderRow(p: Product): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "grid grid-cols-[56px_1fr_auto] gap-3 items-center bg-card border border-line rounded-lg p-3";
+
+    const thumb = document.createElement("img");
+    thumb.className = "w-14 h-14 object-cover rounded bg-ink";
+    thumb.alt = "";
+    thumb.src = p.image_path ? productImageUrl(supabaseUrl, p.image_path, { width: 112 }) : "";
+    row.appendChild(thumb);
+
+    const fields = document.createElement("div");
+    fields.className = "grid grid-cols-2 gap-2";
+    fields.innerHTML = `
+      <input class="admin-input" data-f="category" value="${escapeAttr(p.category)}" placeholder="Categoría" />
+      <input class="admin-input" data-f="name" value="${escapeAttr(p.name)}" placeholder="Nombre" />
+      <input class="admin-input" data-f="price" type="number" step="0.5" min="0" value="${euros(p.price_cents)}" placeholder="Precio (€)" />
+      <input class="admin-input" data-f="stock" type="number" step="1" min="0" value="${p.stock}" placeholder="Stock" />
+      <textarea class="admin-input col-span-2" data-f="description" placeholder="Descripción">${escapeHtml(p.description)}</textarea>
+    `;
+    row.appendChild(fields);
+
+    const actions = document.createElement("div");
+    actions.className = "flex flex-col gap-1.5";
+    actions.innerHTML = `
+      <button type="button" data-act="save" class="border border-line text-bone-dim hover:border-brass hover:text-brass font-mono text-[0.68rem] px-2 py-1.5">Guardar</button>
+      <button type="button" data-act="del" class="border border-line text-bone-dim hover:border-rust hover:text-rust font-mono text-[0.68rem] px-2 py-1.5">Quitar</button>
+    `;
+    row.appendChild(actions);
+
+    actions.querySelector('[data-act="save"]')!.addEventListener("click", async () => {
+      const get = (f: string) => (fields.querySelector(`[data-f="${f}"]`) as HTMLInputElement).value;
+      const { error } = await supabase
+        .from("products")
+        .update({
+          category: get("category"),
+          name: get("name"),
+          description: get("description"),
+          price_cents: Math.round(parseFloat(get("price") || "0") * 100),
+          stock: parseInt(get("stock") || "0", 10),
+        })
+        .eq("id", p.id);
+      if (error) alert("No se pudo guardar: " + error.message);
+    });
+
+    actions.querySelector('[data-act="del"]')!.addEventListener("click", async () => {
+      if (!confirm(`¿Quitar "${p.name}" del catálogo?`)) return;
+      const { error } = await supabase.from("products").delete().eq("id", p.id);
+      if (error) alert("No se pudo quitar: " + error.message);
+      else row.remove();
+    });
+
+    return row;
+  }
+
+  function escapeHtml(s: string) {
+    return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  }
+  function escapeAttr(s: string) {
+    return escapeHtml(s);
+  }
+
+  document.getElementById("login-form")!.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = (document.getElementById("login-email") as HTMLInputElement).value;
+    const password = (document.getElementById("login-password") as HTMLInputElement).value;
+    const status = document.getElementById("login-status")!;
+    status.textContent = "Entrando…";
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      status.textContent = "Credenciales incorrectas.";
+      return;
+    }
+    status.textContent = "";
+    await refreshUI();
+  });
+
+  document.getElementById("logout-btn")!.addEventListener("click", async () => {
+    await supabase.auth.signOut();
+    await refreshUI();
+  });
+
+  document.getElementById("add-form")!.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const form = e.target as HTMLFormElement;
+    const status = document.getElementById("add-status")!;
+    const fd = new FormData(form);
+    const file = (form.querySelector("#add-image") as HTMLInputElement).files?.[0];
+
+    status.textContent = "Guardando…";
+
+    let imagePath: string | null = null;
+    if (file) {
+      const sku = String(fd.get("sku") || "pieza").toLowerCase();
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${sku}-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("product-photos")
+        .upload(path, file, { upsert: false });
+      if (uploadError) {
+        status.textContent = "No se pudo subir la foto: " + uploadError.message;
+        return;
+      }
+      imagePath = path;
+    }
+
+    const { error } = await supabase.from("products").insert({
+      sku: String(fd.get("sku")),
+      category: String(fd.get("category")),
+      name: String(fd.get("name")),
+      description: String(fd.get("description")),
+      price_cents: Math.round(parseFloat(String(fd.get("price") || "0")) * 100),
+      stock: parseInt(String(fd.get("stock") || "0"), 10),
+      sort_order: parseInt(String(fd.get("sort_order") || "0"), 10),
+      image_path: imagePath,
+    });
+
+    if (error) {
+      status.textContent = "No se pudo añadir: " + error.message;
+      return;
+    }
+
+    status.textContent = "Añadido.";
+    form.reset();
+    await loadProducts();
+  });
+
+  refreshUI();
+</script>

@@ -1,0 +1,27 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import ScrollReel from "@/components/ScrollReel.astro";
+import ContactForm from "@/components/ContactForm.astro";
+import { fetchPublishedProducts } from "@/lib/products";
+
+// The catalog is fully static/indexable: fetched and baked in at build
+// time. Stock updates after that point arrive live via the Supabase
+// Realtime subscription in scroll-reel.ts, so an open tab never shows
+// stale "in stock" copy — but a crawler or first paint always gets
+// real, server-rendered product content instead of an empty canvas.
+export const prerender = true;
+
+const products = await fetchPublishedProducts();
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL ?? "";
+
+const title = "Ámbar & Cuerda — Bisutería hecha a mano en Barcelona";
+const description =
+  "Piezas únicas de latón macizo y cordón encerado, hechas a mano en Barcelona. Cada tanda es limitada — cuando se agota, no vuelve a hacerse igual.";
+---
+
+<BaseLayout title={title} description={description} ogImage="/og-cover.jpg">
+  <main id="main">
+    <ScrollReel products={products} supabaseUrl={supabaseUrl} />
+    <ContactForm />
+  </main>
+</BaseLayout>

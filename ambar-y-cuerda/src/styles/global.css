@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    @apply bg-ink text-bone antialiased overflow-x-hidden;
+    font-family: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-serif-italic {
+    font-family: "Fraunces", Georgia, serif;
+    font-style: italic;
+  }
+
+  /* Visible focus rings everywhere for keyboard users — the demo had none. */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid theme("colors.brass");
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: theme("colors.brass");
+    color: theme("colors.ink");
+  }
+}
+
+@layer components {
+  /* Stage copy: only the active stage is laid out in flow; the rest are
+     absolutely stacked at opacity 0 but stay in the DOM (readable by
+     screen readers/crawlers) — see the sr-only fallback list too. */
+  .story__stage {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    opacity: 0;
+    transform: translateY(10px);
+    max-width: min(88vw, 30rem);
+    visibility: hidden;
+    transition:
+      opacity 0.22s ease,
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+  .story__stage.is-active {
+    opacity: 1;
+    transform: translateY(0);
+    position: relative;
+    visibility: visible;
+    transition:
+      opacity 0.22s ease,
+      transform 0.22s ease,
+      visibility 0s linear 0s;
+  }
+
+  .reel-tick.is-active span {
+    background: theme("colors.brass");
+  }
+  .reel-tick.is-past span {
+    background: rgba(239, 231, 216, 0.5);
+  }
+}
+
+@layer utilities {
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: theme("colors.brass");
+  }
+
+  .grain-overlay {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    mix-blend-mode: overlay;
+    opacity: 0.14;
+  }
+
+  .sr-only-focusable {
+    @apply sr-only focus:not-sr-only focus:absolute focus:z-[999] focus:bg-brass focus:text-ink focus:px-4 focus:py-2 focus:rounded;
+  }
+}

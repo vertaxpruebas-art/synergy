@@ -1,0 +1,109 @@
+---
+---
+
+<section id="contacto" class="relative z-[2] bg-card border-t border-line px-[clamp(1.25rem,4vw,3rem)] py-[clamp(2.5rem,6vw,4rem))]">
+  <div class="max-w-2xl mx-auto text-center">
+    <span class="eyebrow block mb-2">Escríbenos</span>
+    <h2 class="font-serif-italic font-medium text-[clamp(1.8rem,4vw,2.6rem)] text-bone mb-3">
+      Sin carrito, sin cuentas — respondemos el mismo día
+    </h2>
+    <p class="text-bone-dim leading-relaxed max-w-xl mx-auto">
+      Cuéntanos qué pieza te interesa y te contestamos por correo. El stock que ves arriba se
+      actualiza al instante en cuanto se vende — sin recargar la página.
+    </p>
+
+    <form id="contact-form" class="mt-8 text-left grid gap-4" novalidate>
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label for="name" class="block font-mono text-[0.68rem] uppercase tracking-wide text-bone-dim mb-1">
+            Nombre
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            required
+            autocomplete="name"
+            class="w-full bg-ink border border-line text-bone px-3 py-2 rounded text-sm focus:border-brass"
+          />
+        </div>
+        <div>
+          <label for="email" class="block font-mono text-[0.68rem] uppercase tracking-wide text-bone-dim mb-1">
+            Correo
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            autocomplete="email"
+            class="w-full bg-ink border border-line text-bone px-3 py-2 rounded text-sm focus:border-brass"
+          />
+        </div>
+      </div>
+      <div>
+        <label for="message" class="block font-mono text-[0.68rem] uppercase tracking-wide text-bone-dim mb-1">
+          Mensaje
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          rows="4"
+          required
+          class="w-full bg-ink border border-line text-bone px-3 py-2 rounded text-sm focus:border-brass"
+        ></textarea>
+      </div>
+      <!-- Honeypot: hidden from real visitors, bots tend to fill every field -->
+      <div class="hidden" aria-hidden="true">
+        <label for="company">Empresa</label>
+        <input id="company" name="company" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <button
+        type="submit"
+        class="justify-self-center bg-brass text-ink font-mono text-[0.72rem] tracking-wide uppercase px-6 py-3 rounded hover:bg-[#dcb761] transition-colors disabled:opacity-60"
+      >
+        Enviar mensaje
+      </button>
+      <p id="contact-status" role="status" class="text-center font-mono text-[0.72rem] text-bone-dim min-h-[1em]"></p>
+    </form>
+
+    <div class="mt-8 flex justify-center gap-7 flex-wrap font-mono text-[0.8rem] text-bone-dim">
+      <div><span class="text-brass">WhatsApp</span> · <b class="text-bone font-medium">600 000 000</b></div>
+      <div><span class="text-brass">Correo</span> · <b class="text-bone font-medium">hola@ambarycuerda.com</b></div>
+      <div><span class="text-brass">Ubicación</span> · <b class="text-bone font-medium">Barcelona, España</b></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+  const status = document.getElementById("contact-status");
+
+  form?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!status) return;
+
+    const data = Object.fromEntries(new FormData(form).entries());
+    if (data.company) return; // honeypot tripped, silently drop
+
+    const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    submitBtn && (submitBtn.disabled = true);
+    status.textContent = "Enviando…";
+
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("request failed");
+      status.textContent = "Gracias — te respondemos en breve.";
+      form.reset();
+    } catch {
+      status.textContent = "No se pudo enviar. Escríbenos por WhatsApp mientras lo arreglamos.";
+    } finally {
+      submitBtn && (submitBtn.disabled = false);
+    }
+  });
+</script>

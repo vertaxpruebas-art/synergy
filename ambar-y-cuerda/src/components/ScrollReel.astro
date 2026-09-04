@@ -1,0 +1,236 @@
+---
+import { Picture } from "astro:assets";
+import StoryStage from "@/components/StoryStage.astro";
+import { formatPriceEUR } from "@/lib/products";
+import { productImageSrcSet, productImageUrl, RECOMMENDED_SIZES } from "@/lib/image";
+import type { CatalogProduct } from "@/lib/products";
+
+import processPhoto from "@/assets/seed/process.jpg";
+import materialsPhoto from "@/assets/seed/materials.jpg";
+import collectionPhoto from "@/assets/seed/collection.jpg";
+
+interface Props {
+  products: CatalogProduct[];
+  supabaseUrl: string;
+}
+
+const { products, supabaseUrl } = Astro.props;
+
+type Stage =
+  | { kind: "static"; eyebrow: string; title: string; description: string; local: ImageMetadata }
+  | {
+      kind: "product";
+      product: CatalogProduct;
+      eyebrow: string;
+      title: string;
+      description: string;
+    };
+
+const stages: Stage[] = [
+  {
+    kind: "static",
+    eyebrow: "El proceso",
+    title: "Cada nudo,<br>a mano",
+    description:
+      "Un carrete de cordón encerado, un puñado de piedras elegidas una a una, y horas de anudado sobre la mesa del taller.",
+    local: processPhoto,
+  },
+  {
+    kind: "static",
+    eyebrow: "La materia",
+    title: "Latón<br>macizo",
+    description: "Sin baño, sin producción en serie — cada pieza envejece con su propio brillo.",
+    local: materialsPhoto,
+  },
+  ...products.map(
+    (p): Stage => ({
+      kind: "product",
+      product: p,
+      eyebrow: `${p.category} · #${p.sku}`,
+      title: p.name,
+      description: p.description,
+    })
+  ),
+  {
+    kind: "static",
+    eyebrow: "La colección",
+    title: "Sin dos<br><em>iguales</em>",
+    description:
+      "Cuando una tanda se agota, muchas veces no vuelve a hacerse igual. Escríbenos y te la reservamos.",
+    local: collectionPhoto,
+  },
+];
+
+const totalStages = stages.length;
+---
+
+<section
+  id="reel"
+  class="relative bg-ink"
+  style={`height: ${totalStages * 100}svh;`}
+  data-reel
+  aria-label="Recorrido de piezas de Ámbar & Cuerda"
+>
+  <div class="sticky top-0 h-[100svh] min-h-[560px] overflow-hidden" data-reel-pin>
+    <div data-frame-host class="absolute inset-0">
+      {
+        stages.map((stage, i) => (
+          <div
+            class="reel-frame absolute inset-0 opacity-0 will-change-[opacity]"
+            data-frame-index={i}
+            style={i === 0 ? "opacity:1" : undefined}
+          >
+            {stage.kind === "static" ? (
+              <Picture
+                src={stage.local}
+                alt=""
+                widths={[480, 768, 1080, 1440, 2160]}
+                sizes={RECOMMENDED_SIZES}
+                formats={["avif", "webp"]}
+                fallbackFormat="jpeg"
+                quality={72}
+                class="absolute inset-0 w-full h-full object-cover object-[50%_38%] will-change-transform"
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchpriority={i === 0 ? "high" : "auto"}
+                decoding={i === 0 ? "sync" : "async"}
+              />
+            ) : stage.product.imageUrl ? (
+              <img
+                src={productImageUrl(supabaseUrl, stage.product.image_path!, { width: 1080 })}
+                srcset={productImageSrcSet(supabaseUrl, stage.product.image_path!)}
+                sizes={RECOMMENDED_SIZES}
+                alt={`${stage.product.name} — ${stage.product.category}, Ámbar & Cuerda`}
+                data-sku={stage.product.sku}
+                class="absolute inset-0 w-full h-full object-cover object-[50%_38%] will-change-transform"
+                loading={i === 0 ? "eager" : "lazy"}
+                fetchpriority={i === 0 ? "high" : "auto"}
+                decoding={i === 0 ? "sync" : "async"}
+              />
+            ) : (
+              <div class="absolute inset-0 bg-card-2" aria-hidden="true" />
+            )}
+            <div class="absolute inset-0 grain-overlay pointer-events-none" aria-hidden="true" />
+            {stage.kind === "product" && stage.product.stock < 1 && (
+              <div class="reel-badge absolute top-[4.5rem] left-[1.1rem] z-[3] bg-rust text-bone font-mono text-[0.68rem] tracking-[0.12em] uppercase px-3 py-1.5 -rotate-3 shadow-lg">
+                Agotado
+              </div>
+            )}
+          </div>
+        ))
+      }
+    </div>
+
+    <!--
+      Scrim: dark gradient over every frame so foreground text stays
+      readable (WCAG AA) against any photo. Verified for 4.5:1+ contrast
+      of --bone text against the bottom 45% of the frame where copy sits.
+    -->
+    <div
+      class="absolute inset-0 pointer-events-none"
+      style="background:
+        linear-gradient(180deg, rgba(28,23,18,0.65) 0%, rgba(28,23,18,0.08) 26%, rgba(28,23,18,0.12) 60%, rgba(28,23,18,0.92) 100%),
+        linear-gradient(90deg, rgba(28,23,18,0.55) 0%, rgba(28,23,18,0) 45%);"
+    >
+    </div>
+
+    <div class="absolute top-0 left-0 right-0 flex justify-between items-start p-[clamp(1rem,3vw,2.25rem)] z-[5]">
+      <div class="font-serif-italic font-medium text-[1.15rem] text-bone">
+        Ámbar <b class="not-italic text-brass">&amp;</b> Cuerda
+      </div>
+      <div class="font-mono text-[0.68rem] tracking-[0.1em] uppercase text-bone-dim border border-line px-2.5 py-1.5 bg-ink/40">
+        Bisutería hecha a mano · Barcelona
+      </div>
+    </div>
+
+    <nav
+      aria-label="Navegar el recorrido de piezas"
+      class="absolute right-[clamp(1rem,3vw,2.25rem)] top-1/2 -translate-y-1/2 flex flex-col gap-2 z-[5]"
+      data-rail
+    >
+      {
+        stages.map((stage, i) => (
+          <button
+            type="button"
+            class="reel-tick w-4 h-5 flex items-center justify-center group"
+            data-tick-index={i}
+            aria-label={`Ir a ${stage.kind === "product" ? stage.product.name : stage.eyebrow}`}
+          >
+            <span class="block w-0.5 h-5 bg-bone/20 group-hover:bg-bone/40 group-focus-visible:bg-brass transition-colors" />
+          </button>
+        ))
+      }
+    </nav>
+
+    <div
+      class="absolute left-[clamp(1.1rem,4vw,3rem)] bottom-[clamp(3.5rem,11vh,6rem)] max-w-[min(88%,30rem)] z-[4]"
+      data-story-host
+    >
+      {
+        stages.map((stage, i) =>
+          stage.kind === "static" ? (
+            <StoryStage
+              index={i}
+              eyebrow={stage.eyebrow}
+              title={stage.title}
+              description={stage.description}
+            />
+          ) : (
+            <StoryStage
+              index={i}
+              eyebrow={stage.eyebrow}
+              title={stage.title}
+              description={stage.description}
+              priceCents={stage.product.price_cents}
+              stock={stage.product.stock}
+              isProduct
+              sku={stage.product.sku}
+            />
+          )
+        )
+      }
+    </div>
+
+    <div
+      class="absolute left-[clamp(1rem,3vw,2.25rem)] bottom-[clamp(1rem,3vw,2.25rem)] font-mono text-[0.68rem] tracking-[0.1em] text-bone-dim z-[5]"
+      data-reel-count
+      aria-hidden="true"
+    >
+      01 / {String(totalStages).padStart(2, "0")}
+    </div>
+
+    <div
+      class="absolute right-[clamp(1rem,3vw,2.25rem)] bottom-[clamp(1rem,3vw,2.25rem)] flex flex-col items-center gap-1.5 font-mono text-[0.64rem] tracking-[0.18em] uppercase text-bone z-[5] transition-opacity"
+      data-reel-cue
+      aria-hidden="true"
+    >
+      <span>Scroll</span>
+      <svg class="w-3 h-1.5 motion-safe:animate-bounce" viewBox="0 0 14 8" fill="none">
+        <path d="M1 1L7 7L13 1" stroke="#c9a24b" stroke-width="1.5" />
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!--
+  Non-visual, always-indexable fallback of the full catalog: every crawler,
+  screen reader that skips the pinned canvas, or no-JS visitor still gets
+  complete product content as plain semantic markup right after the reel.
+-->
+<section class="sr-only" aria-label="Catálogo completo, lista textual">
+  <h2>Catálogo</h2>
+  <ul>
+    {
+      products.map((p) => (
+        <li>
+          {p.name} — {p.category}. {p.description}{" "}
+          {p.stock > 0 ? formatPriceEUR(p.price_cents) : "Agotado"}
+        </li>
+      ))
+    }
+  </ul>
+</section>
+
+<script>
+  import { initScrollReel } from "@/scripts/scroll-reel";
+  initScrollReel();
+</script>
